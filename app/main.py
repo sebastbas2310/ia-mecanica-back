@@ -3,8 +3,11 @@ from fastapi import FastAPI, HTTPException, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from supabase_client import supabase
 from schemas import RegisterRequest, LoginRequest
+from controllers.agent_controller import router as agent_router
 
 app = FastAPI()
+
+app.include_router(agent_router)
 
 # CORS para que tu frontend pueda llamar a la API
 app.add_middleware(
