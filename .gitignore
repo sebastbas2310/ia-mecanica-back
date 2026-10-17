@@ -48,3 +48,6 @@ dist/
 *.njsproj
 *.sln
 *.sw?
+
+# Plantilla de variables de entorno (sin secretos): SI se versiona
+!.env.example
