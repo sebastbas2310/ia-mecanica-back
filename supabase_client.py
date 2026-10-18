@@ -18,3 +18,16 @@ def get_auth_client() -> Client:
         settings.supabase_anon_key,
         options=ClientOptions(auto_refresh_token=False, persist_session=False),
     )
+
+
+def get_user_client(access_token: str) -> Client:
+    """Create a PostgREST client whose requests run under the authenticated user's JWT."""
+    if not settings.supabase_url or not settings.supabase_anon_key:
+        raise RuntimeError("Faltan SUPABASE_URL o SUPABASE_ANON_KEY en el .env")
+    client = create_client(
+        settings.supabase_url,
+        settings.supabase_anon_key,
+        options=ClientOptions(auto_refresh_token=False, persist_session=False),
+    )
+    client.postgrest.auth(access_token)
+    return client

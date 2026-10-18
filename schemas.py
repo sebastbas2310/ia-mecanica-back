@@ -1,4 +1,8 @@
 """DTOs (Data Transfer Objects): contratos de entrada/salida de la API validados con Pydantic."""
+from datetime import datetime
+from typing import Literal
+from uuid import UUID
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -39,3 +43,32 @@ class RegisterResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    conversation_id: UUID | None = None
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    conversation_id: UUID
+
+
+class ChatMessageOut(BaseModel):
+    id: UUID
+    role: Literal["user", "assistant"]
+    content: str
+    created_at: datetime
+
+
+class ChatConversationSummary(BaseModel):
+    id: UUID
+    title: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ChatConversationOut(ChatConversationSummary):
+    messages: list[ChatMessageOut]
+    next_offset: int | None = None

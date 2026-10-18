@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.security import CurrentUser, get_current_user
+from controllers.agent_controller import router as agent_router
 from controllers.auth_controller import router as auth_router
 
 logging.basicConfig(level=logging.INFO)
@@ -42,6 +43,7 @@ app.include_router(auth_router)
 
 # --- Rutas protegidas -------------------------------------------------------
 protected = APIRouter(dependencies=[Depends(get_current_user)])
+protected.include_router(agent_router, prefix="/agent", tags=["agent"])
 
 
 @protected.get("/protected/ping", tags=["infra"])
@@ -51,9 +53,7 @@ def ping(user: CurrentUser = Depends(get_current_user)):
 
 
 # Cuando existan, regístralos aquí y quedarán protegidos automáticamente:
-# from controllers.agent_controller import router as agent_router
 # from controllers.document_controller import router as document_router
-# protected.include_router(agent_router)
 # protected.include_router(document_router)
 
 app.include_router(protected)
