@@ -15,14 +15,28 @@ dist-ssr
 .tanstack/**
 .nitro
 *.local
+
+# Python
 .venv
 venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local environment files; keep the example template versioned
 .env
+.env.*
 
 # Wrangler / Cloudflare
 .wrangler/
 .dev.vars
-pyproject.toml
 
 # Editor directories and files
 .vscode/*
@@ -34,3 +48,6 @@ pyproject.toml
 *.njsproj
 *.sln
 *.sw?
+
+# Plantilla de variables de entorno (sin secretos): SI se versiona
+!.env.example

@@ -1,61 +1,59 @@
-# main.py
-from fastapi import FastAPI, HTTPException, Depends, Header
+"""Punto de entrada de la API.
+
+Regla de seguridad: los ÚNICOS endpoints públicos son /health y /auth/{register,login,refresh}.
+Todo router de negocio (agente, documentos, historial) se registra en `protected`,
+que exige un JWT válido en TODAS sus rutas. Así no se puede "olvidar" proteger un endpoint.
+"""
+import logging
+
+from fastapi import APIRouter, Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from supabase_client import supabase
-from schemas import RegisterRequest, LoginRequest
-from controllers.agent_controller import router as agent_router
 
-app = FastAPI()
+from app.config import settings
+from app.security import CurrentUser, get_current_user
+from controllers.auth_controller import router as auth_router
 
-app.include_router(agent_router)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("app")
 
-# CORS para que tu frontend pueda llamar a la API
+# Verificación temprana de configuración: mejor un aviso claro al arrancar que un 500 misterioso.
+if not settings.supabase_url or "TU-PROYECTO" in settings.supabase_url:
+    logger.warning("SUPABASE_URL no está configurada en .env (valor actual: %r)", settings.supabase_url)
+if not settings.supabase_anon_key or settings.supabase_anon_key.startswith("tu-"):
+    logger.warning("SUPABASE_ANON_KEY no está configurada en .env")
+
+app = FastAPI(title="IA Mecánica API", version="0.1.0")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # en producción, especifica tu dominio
+    allow_origins=settings.cors_origins,  # lista explícita, nunca "*" en producción
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 
-@app.post("/auth/register")
-def register(data: RegisterRequest):
-    try:
-        response = supabase.auth.sign_up({
-            "email": data.email,
-            "password": data.password,
-        })
-        return {
-            "user": response.user,
-            "session": response.session,
-            "message": "Revisa tu correo para confirmar la cuenta (si tienes confirmación activada)."
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@app.get("/health", tags=["infra"])
+def health():
+    return {"status": "ok"}
 
 
-@app.post("/auth/login")
-def login(data: LoginRequest):
-    try:
-        response = supabase.auth.sign_in_with_password({
-            "email": data.email,
-            "password": data.password,
-        })
-        return {
-            "access_token": response.session.access_token,
-            "refresh_token": response.session.refresh_token,
-            "user": response.user,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+app.include_router(auth_router)
+
+# --- Rutas protegidas -------------------------------------------------------
+protected = APIRouter(dependencies=[Depends(get_current_user)])
 
 
-@app.post("/auth/logout")
-def logout(authorization: str = Header(...)):
-    try:
-        token = authorization.replace("Bearer ", "")
-        supabase.auth.sign_out()
-        return {"message": "Sesión cerrada"}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+@protected.get("/protected/ping", tags=["infra"])
+def ping(user: CurrentUser = Depends(get_current_user)):
+    """Endpoint de prueba para verificar que el token funciona."""
+    return {"message": f"Hola {user.email}, tu token es válido", "user_id": user.id}
+
+
+# Cuando existan, regístralos aquí y quedarán protegidos automáticamente:
+# from controllers.agent_controller import router as agent_router
+# from controllers.document_controller import router as document_router
+# protected.include_router(agent_router)
+# protected.include_router(document_router)
+
+app.include_router(protected)
