@@ -131,6 +131,40 @@ def test_history_endpoints_return_conversations_and_messages(monkeypatch):
     )
 
 
+@pytest.mark.usefixtures("authenticated_user")
+def test_delete_conversation_returns_no_content(monkeypatch):
+    conversation_id = uuid4()
+    delete_conversation = Mock()
+    monkeypatch.setattr(chat_service, "delete_conversation", delete_conversation)
+
+    response = client.delete(f"/agent/conversations/{conversation_id}")
+
+    assert response.status_code == 204
+    delete_conversation.assert_called_once_with(
+        user_id=USER_ID,
+        access_token="test-token",
+        conversation_id=conversation_id,
+    )
+
+
+@pytest.mark.usefixtures("authenticated_user")
+def test_chat_attachment_extracts_text_before_calling_agent(monkeypatch):
+    answer = Mock(return_value=("Respuesta con el archivo.", uuid4()))
+    monkeypatch.setattr(chat_service, "answer", answer)
+
+    response = client.post(
+        "/agent/chat/attachment",
+        data={"message": "Resume el archivo"},
+        files={"file": ("manual.txt", "Contenido técnico", "text/plain")},
+    )
+
+    assert response.status_code == 200
+    assert answer.call_args.args[0] == (
+        "Resume el archivo\n\n--- Archivo adjunto: manual.txt ---\nContenido técnico"
+    )
+    assert answer.call_args.kwargs["user_id"] == USER_ID
+
+
 def test_graph_uses_messages_supplied_for_each_invocation(monkeypatch):
     fake_model = Mock()
     fake_model.invoke.return_value = AIMessage(content="Respuesta mecánica.")

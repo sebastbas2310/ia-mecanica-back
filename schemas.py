@@ -55,6 +55,11 @@ class ChatResponse(BaseModel):
     conversation_id: UUID
 
 
+class ChatAttachmentRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=20000)
+    conversation_id: UUID | None = None
+
+
 class ChatMessageOut(BaseModel):
     id: UUID
     role: Literal["user", "assistant"]

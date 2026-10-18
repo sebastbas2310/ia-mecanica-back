@@ -50,6 +50,10 @@ class FakeQuery:
         self.payload = payload
         return self
 
+    def delete(self):
+        self.operation = "delete"
+        return self
+
     def execute(self):
         rows = self.store.tables[self.table_name]
         if self.operation == "insert":
@@ -69,6 +73,11 @@ class FakeQuery:
             for row in rows
             if all(row.get(key) == value for key, value in self.filters)
         ]
+        if self.operation == "delete":
+            self.store.tables[self.table_name] = [
+                row for row in rows if row not in selected
+            ]
+            return FakeResponse(selected)
         if self.ordering:
             column, desc = self.ordering
             selected.sort(key=lambda row: row[column], reverse=desc)
@@ -178,3 +187,30 @@ def test_unknown_conversation_cannot_be_continued(monkeypatch):
         )
 
     service.graph.invoke.assert_not_called()
+
+
+def test_conversation_can_only_be_deleted_by_its_owner(monkeypatch):
+    database = FakeSupabase()
+    monkeypatch.setattr(
+        "services.chat_service.get_user_client",
+        Mock(return_value=database),
+    )
+    service = ChatService()
+    conversation_id = uuid4()
+    database.tables["chat_conversations"].append(
+        {"id": str(conversation_id), "user_id": "user-1"}
+    )
+
+    service.delete_conversation(
+        user_id="user-1",
+        access_token="user-1-jwt",
+        conversation_id=conversation_id,
+    )
+    assert database.tables["chat_conversations"] == []
+
+    with pytest.raises(ChatConversationNotFound):
+        service.delete_conversation(
+            user_id="user-2",
+            access_token="user-2-jwt",
+            conversation_id=conversation_id,
+        )

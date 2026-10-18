@@ -52,6 +52,19 @@ def test_public_health():
     assert client.get("/health").status_code == 200
 
 
+def test_cors_preflight_from_frontend_dev_origin():
+    response = client.options(
+        "/auth/login",
+        headers={
+            "Origin": "http://127.0.0.1:8081",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:8081"
+
+
 def test_protected_without_token_is_401():
     r = client.get("/protected/ping")
     assert r.status_code == 401

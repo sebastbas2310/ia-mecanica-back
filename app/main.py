@@ -32,6 +32,7 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type"],
 )
+logger.info("Allowed CORS origins: %s", ", ".join(settings.cors_origins))
 
 
 @app.get("/health", tags=["infra"])

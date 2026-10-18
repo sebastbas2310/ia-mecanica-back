@@ -32,7 +32,7 @@ SUPABASE_URL=https://TU-PROYECTO.supabase.co
 SUPABASE_ANON_KEY=tu-clave-publica-de-supabase
 SUPABASE_JWT_SECRET=
 JWT_AUDIENCE=authenticated
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8080,http://127.0.0.1:8080,http://localhost:8081,http://127.0.0.1:8081
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=llama3.1
 ```
@@ -53,14 +53,16 @@ No uses `*` como origen. Reinicia el backend después de modificar `.env`.
 
 ### Crear tablas del historial en Supabase
 
-En el dashboard de Supabase, abre **SQL Editor → New query**, copia y ejecuta el
-contenido de
-[`supabase/migrations/20261018030000_chat_history.sql`](./supabase/migrations/20261018030000_chat_history.sql).
-La migración crea las tablas de conversaciones y mensajes, índices y políticas RLS
-para que cada usuario solo pueda leer o modificar su propio historial. Debe
-ejecutarse una vez en cada proyecto/entorno de Supabase antes de usar las rutas de
-chat. El backend utiliza el access token del usuario y la clave pública; no requiere
-ni debe recibir la clave `service_role`.
+En el dashboard de Supabase, abre **SQL Editor → New query** y ejecuta, en orden,
+el contenido de
+[`supabase/migrations/20261018030000_chat_history.sql`](./supabase/migrations/20261018030000_chat_history.sql)
+y
+[`supabase/migrations/20261018040000_chat_delete_policy.sql`](./supabase/migrations/20261018040000_chat_delete_policy.sql).
+La primera migración crea las tablas, índices y políticas RLS del historial; la
+segunda habilita el borrado de conversaciones propias. Deben ejecutarse una vez
+en cada proyecto/entorno de Supabase antes de usar todas las funciones del chat.
+El backend utiliza el access token del usuario y la clave pública; no requiere ni
+debe recibir la clave `service_role`.
 
 ### Iniciar localmente
 
@@ -112,8 +114,8 @@ Proporciona a Lovable estos datos:
 - Contrato OpenAPI: `https://api.tu-dominio.com/openapi.json`.
 - Rutas de autenticación: `/auth/register`, `/auth/login`, `/auth/refresh`,
   `/auth/logout`, `/auth/me`.
-- Rutas del chat: `/agent/chat`, `/agent/conversations` y
-  `/agent/conversations/{conversation_id}`.
+- Rutas del chat: `/agent/chat`, `/agent/chat/attachment`,
+  `/agent/conversations` y `/agent/conversations/{conversation_id}` (GET y DELETE).
 - Las rutas protegidas requieren `Authorization: Bearer <access_token>`.
 - Al iniciar sesión, conserva `access_token` para las llamadas protegidas y
   `refresh_token` para renovar la sesión. Nunca muestres ni registres estos tokens.
@@ -138,7 +140,8 @@ Prompt de partida para Lovable:
 
 ## Contrato de la API
 
-Todos los cuerpos y respuestas usan JSON con `Content-Type: application/json`.
+Las rutas JSON usan `Content-Type: application/json`; la ruta para adjuntar
+archivos usa `multipart/form-data`.
 
 ### Salud del backend
 
@@ -337,6 +340,31 @@ Devuelve la conversación y sus mensajes ordenados cronológicamente:
 `limit` acepta de 1 a 500 (predeterminado 100). Si `next_offset` no es `null`,
 solicita la siguiente página usando ese valor como `offset`. Una conversación
 inexistente o perteneciente a otro usuario responde `404`.
+
+### Adjuntar un archivo al chat
+
+`POST /agent/chat/attachment` — requiere autenticación y acepta `multipart/form-data`
+con estos campos:
+
+- `message`: pregunta de 1 a 4.000 caracteres.
+- `conversation_id`: UUID opcional para continuar un chat.
+- `file`: archivo PDF, TXT, Markdown, CSV o DOCX de hasta 8 MB.
+
+El backend extrae hasta 12.000 caracteres de texto y los envía junto con la pregunta
+al agente. El archivo original no se conserva; la pregunta y el texto extraído sí
+quedan en el historial. Los PDF escaneados como imagen, archivos vacíos y formatos
+no compatibles no se pueden procesar.
+
+### Eliminar una conversación
+
+`DELETE /agent/conversations/{conversation_id}` — requiere autenticación.
+
+Responde `204` al borrar la conversación y sus mensajes, o `404` si no existe o
+pertenece a otra cuenta. Para habilitar esta operación, ejecuta la migración
+[`supabase/migrations/20261018040000_chat_delete_policy.sql`](./supabase/migrations/20261018040000_chat_delete_policy.sql).
+
+El dictado por voz de la interfaz usa el reconocimiento de voz del navegador y
+envía la transcripción como texto normal al chat. No se envía audio al backend.
 
 ### Cierre de sesión
 

@@ -125,6 +125,24 @@ class ChatService:
             ),
         }
 
+    def delete_conversation(
+        self, user_id: str, access_token: str, conversation_id: UUID
+    ) -> None:
+        client = self._get_client(access_token)
+        if not self._conversation_exists(client, user_id, conversation_id):
+            raise ChatConversationNotFound
+
+        try:
+            (
+                client.table("chat_conversations")
+                .delete()
+                .eq("id", str(conversation_id))
+                .eq("user_id", user_id)
+                .execute()
+            )
+        except (APIError, httpx.HTTPError) as error:
+            raise self._storage_error(error) from error
+
     def _conversation_exists(self, client, user_id: str, conversation_id: UUID) -> bool:
         try:
             response = (

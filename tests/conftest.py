@@ -5,5 +5,5 @@ os.environ.update(
     SUPABASE_URL="https://test.supabase.co",
     SUPABASE_ANON_KEY="anon-test-key",
     SUPABASE_JWT_SECRET="super-secret-test-key-with-at-least-32-bytes!!",
-    CORS_ORIGINS="http://localhost:5173",
+    CORS_ORIGINS="http://localhost:5173,http://127.0.0.1:8081",
 )

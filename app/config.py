@@ -26,7 +26,12 @@ class Settings:
     # Orígenes del frontend autorizados (CORS). Separados por coma.
     cors_origins: list[str] = field(
         default_factory=lambda: _split_csv(
-            os.getenv("CORS_ORIGINS", "http://localhost:5173,http://localhost:3000")
+            os.getenv(
+                "CORS_ORIGINS",
+                "http://localhost:5173,http://localhost:3000,"
+                "http://localhost:8080,http://127.0.0.1:8080,"
+                "http://localhost:8081,http://127.0.0.1:8081",
+            )
         )
     )
     ollama_base_url: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
