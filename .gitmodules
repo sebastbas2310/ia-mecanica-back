@@ -1,0 +1,3 @@
+[submodule "front/pal-and-prompt"]
+	path = front/pal-and-prompt
+	url = https://github.com/sebastbas2310/pal-and-prompt.git
