@@ -16,5 +16,8 @@ def get_auth_client() -> Client:
     return create_client(
         settings.supabase_url,
         settings.supabase_anon_key,
-        options=ClientOptions(auto_refresh_token=False, persist_session=False),
+        options=ClientOptions(
+        headers={"Authorization": f"Bearer {settings.supabase_anon_key}"}, #access_token
+        auto_refresh_token=False,
+        persist_session=False),
     )

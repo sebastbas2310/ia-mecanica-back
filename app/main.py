@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.security import CurrentUser, get_current_user
 from controllers.auth_controller import router as auth_router
+from controllers.chat_controller import router as chat_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("app")
@@ -55,5 +56,8 @@ def ping(user: CurrentUser = Depends(get_current_user)):
 # from controllers.document_controller import router as document_router
 # protected.include_router(agent_router)
 # protected.include_router(document_router)
+
+# Routers de negocio: todos requieren autenticación
+    protected.include_router(chat_router)
 
 app.include_router(protected)
