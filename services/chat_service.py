@@ -123,3 +123,17 @@ class ChatService:
             "conversation_id": conversation_id,
             "reply": reply,
         }
+
+def delete_conversation(self, conversation_id: str, user_id: str) -> dict:
+    result = (
+        self.supabase.table("chat_conversations")
+        .delete()
+        .eq("id", conversation_id)
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if not result.data:
+        raise ValueError("Conversación no encontrada")
+
+    return {"deleted": True, "conversation_id": conversation_id}

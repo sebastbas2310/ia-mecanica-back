@@ -91,3 +91,23 @@ def send_message(
             status_code=500,
             detail="No se pudo procesar el mensaje",
         )
+
+
+@router.delete("/conversations/{conversation_id}")
+def delete_conversation(
+    conversation_id: str,
+    user: CurrentUser = Depends(get_current_user),
+    service: ChatService = Depends(get_chat_service),
+):
+    try:
+        return service.delete_conversation(conversation_id, user.id)
+    except ValueError:
+        raise HTTPException(
+            status_code=404,
+            detail="Conversación no encontrada",
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo eliminar la conversación",
+        )
