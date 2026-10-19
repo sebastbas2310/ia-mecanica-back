@@ -11,6 +11,7 @@ from agents import agent
 from app.main import app
 from app.security import CurrentUser, get_current_user
 from controllers.agent_controller import chat_service
+from services.chat_service import ChatConversationNotFound
 
 client = TestClient(app)
 USER_ID = "11111111-2222-3333-4444-555555555555"
@@ -145,6 +146,21 @@ def test_delete_conversation_returns_no_content(monkeypatch):
         access_token="test-token",
         conversation_id=conversation_id,
     )
+
+
+@pytest.mark.usefixtures("authenticated_user")
+def test_delete_conversation_returns_not_found_when_unavailable(monkeypatch):
+    conversation_id = uuid4()
+    monkeypatch.setattr(
+        chat_service,
+        "delete_conversation",
+        Mock(side_effect=ChatConversationNotFound),
+    )
+
+    response = client.delete(f"/agent/conversations/{conversation_id}")
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "No se encontró la conversación."
 
 
 @pytest.mark.usefixtures("authenticated_user")
